@@ -94,21 +94,24 @@ generated code into `ontario-search.spec.ts` inside the `describe` block.
 >
 > ```typescript
 > test('topic filter decreases result count', async ({ page }) => {
->   await page.goto('/search?query=driver+licence');
->   await page.waitForSelector('h4 a');
+>   await page.goto('/search/search-results/?query=driver+licence');
+>   await page.waitForLoadState('networkidle');
 >
->   const resultsHeader = page.locator('h3').filter({ hasText: /results/ });
->   const beforeText = await resultsHeader.textContent();
->   const beforeCount = parseInt(beforeText?.match(/\d+/)?.[0] ?? '0');
+>   const resultsHeader = page.locator('h2.results-summary-title');
+>   await expect(resultsHeader).toBeVisible({ timeout: 30000 });
+>   const beforeCount = Number.parseInt(
+>     (await resultsHeader.locator('.results-number').textContent())?.replace(/,/g, '') ?? '0',
+>     10
+>   );
 >
->   await page.locator('label').filter({ hasText: /driving/i }).first().click();
->   await page.locator('#filterSortApply').click();
->   await page.waitForSelector('h4 a');
->
->   const afterText = await resultsHeader.textContent();
->   const afterCount = parseInt(afterText?.match(/\d+/)?.[0] ?? '0');
->
->   expect(afterCount).toBeLessThan(beforeCount);
+>   await page.getByRole('checkbox', { name: 'Driving and road safety' }).check();
+>   await page.getByRole('button', { name: 'Apply', exact: true }).click();
+> 
+>   const resultCount = resultsHeader.locator('.results-number');
+>   await expect.poll(async () => Number.parseInt(
+>     (await resultCount.textContent())?.replace(/,/g, '') ?? '0',
+>     10
+>   )).toBeLessThan(beforeCount);
 > });
 > ```
 

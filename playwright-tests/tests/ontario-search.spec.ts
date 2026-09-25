@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Ontario.ca Search', () => {
+test.describe('Ontario.ca Search', () => { 
+  //test that clicking on a search result link navigates to the correct page
 
   test.beforeEach(async ({ context }) => {
     // Skip language splash page by setting English cookie
@@ -14,25 +15,48 @@ test.describe('Ontario.ca Search', () => {
 
   test('navigate to Ontario.ca search page', async ({ page }) => {
     // Scenario 1: Basic Navigation — page.goto(), toHaveTitle()
+    console.log('CI pipeline verification');
     await page.goto('/search/search-results/?query=driver+licence');
     await expect(page).toHaveTitle(/ontario/i);
   });
 
-  test('search for driver licence returns results', async ({ page }) => {
+  test('search for health card returns results', async ({ page }) => {
     // Scenario 2: Search and Verify — fill(), click(), text assertions
-    await page.goto('/search/search-results/?query=driver+licence');
+    await page.goto('/search?query=health+card');
     await page.waitForSelector('h4 a');
     await expect(page.locator('h3').filter({ hasText: /results/ })).toBeVisible();
     await expect(page.locator('h4 a').first()).toBeVisible();
+    await expect(page.locator('h4 a').first()).toContainText('health');
   });
 
   test('filter by topic narrows results', async ({ page }) => {
     // Scenario 3: Filter by Topic — checkbox interaction, Apply button
     await page.goto('/search/search-results/?query=driver+licence');
     await page.waitForSelector('h4 a');
-    await page.locator('label').filter({ hasText: /driving/i }).first().click();
-    await page.locator('#filterSortApply').click();
+    await page.getByRole('checkbox', { name: 'Driving and road safety' }).check();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
     await expect(page.locator('h4 a').first()).toBeVisible();
+  });
+
+  test('topic filter decreases result count', async ({ page }) => {
+    await page.goto('/search/search-results/?query=driver+licence');
+    await page.waitForLoadState('networkidle');
+
+    const resultsHeader = page.locator('h2.results-summary-title');
+    await expect(resultsHeader).toBeVisible({ timeout: 30000 });
+    const beforeCount = Number.parseInt(
+      (await resultsHeader.locator('.results-number').textContent())?.replace(/,/g, '') ?? '0',
+      10
+    );
+
+    await page.getByRole('checkbox', { name: 'Driving and road safety' }).check();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+
+    const resultCount = resultsHeader.locator('.results-number');
+    await expect.poll(async () => Number.parseInt(
+      (await resultCount.textContent())?.replace(/,/g, '') ?? '0',
+      10
+    )).toBeLessThan(beforeCount);
   });
 
   test('sort results by updated date', async ({ page }) => {
@@ -95,4 +119,12 @@ test.describe('Ontario.ca Search', () => {
     await page.waitForSelector('h4 a');
     await expect(page.locator('h4 a').first()).toBeVisible();
   });
+  test('test', async ({ page }) => {
+  await page.goto('https://www.ontario.ca/search?query=driver+licence');
+  await page.getByRole('combobox', { name: 'Search' }).click();
+  await page.getByRole('button', { name: 'Clear field' }).click();
+  await page.getByRole('combobox', { name: 'Search' }).fill('birth certificate');
+  await page.getByRole('combobox', { name: 'Search' }).press('Enter');
+  await page.getByRole('link', { name: 'Get or replace an Ontario' }).click();
+});
 });

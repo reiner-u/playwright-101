@@ -23,9 +23,9 @@ test.describe('Ontario.ca WCAG 2.1 A/AA automated checks', () => {
       await expect(page).toHaveTitle(/ontario/i);
 
       if (scenario.state === 'results') {
-        await expect(page.locator('h4 a').first()).toBeVisible();
+        await expect(page.locator('.result-title a').first()).toBeVisible();
       } else if (scenario.state === 'empty') {
-        await expect(page.locator('h3').filter({ hasText: /0 results/ })).toBeVisible();
+        await expect(page.locator('h2.results-summary-title').filter({ hasText: /0 results/ })).toBeVisible();
       } else {
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       }
